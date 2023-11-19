@@ -12,3 +12,43 @@ This project endeavors to innovate within the field of medical imaging by focusi
 
 1. deep_learning - folder consist of python scripts and jupyter notebooks to train all the needed deep learning models and creating mobile version of the models to be used in mobile application
 2. mobile_app - folder consist of Android application which needs to be opened using Anroid Studio
+
+
+## Datasets
+
+1. [Breast Ultrasound Images Dataset](https://www.kaggle.com/datasets/aryashah2k/breast-ultrasound-images-dataset/)
+
+2. [CT2US for Kidney Segmwntation](https://www.kaggle.com/datasets/siatsyx/ct2usforkidneyseg)
+
+3. [Open Kidney Dataset](http://rsingla.ca/kidneyUS/)
+
+### Prepare Datasets
+
+Download datasets from links above, unzip and put them to datasets folder. Rename the unzipped folders as "BUSI", "OpenKidney" and "CT2US" respectively. 
+
+Use `split_BUSI.ipynb`, `split_OpenKindey.ipynb` and `split_CT2US.ipynb` to divide the dataset to train and test 
+
+## Learning and Configuration
+
+Before start learning specify hyperparameter, model and dataset. Here is options and types of parameters. File to be changed is `deep_learning/config.yaml`:
+
+1. `LEARNING_RATE`: float
+2. `BATCH_SIZE`: int
+3. `NUM_EPOCHS` : int
+4. `IMAGE_SIZE` : int (256 recommended)
+5. `MODEL`: [SegResNet, MobileNetV3, ResUNEt, MobileViTV2, Segformer]
+6. `PRETRAINED`: bool
+7. `PRETRAINED_RUN`: string (folder name of run log)
+8. `DATASET`: [BUSI, CT2US, OpenKidney]
+9. `LOSS`: [DiceCELoss, BCEWithLogitsLoss]
+
+To start learning:
+
+`$ cd deep_learning`
+
+`$ python train.py`
+
+
+## Test and Mobile Conversion
+
+`deep_learning/mobole.ipynb` and `deep_learning/test.ipynb` provide examples on how to test models and convert weights for mobile application. On the top of each notebook it is required to enter the name of run log which is located in `runs` folder after training is finished.
