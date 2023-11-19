@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+import torch.nn.functional as F
 
 class resblock_torch(nn.Module):
     def __init__(self, in_channels):
@@ -24,23 +25,23 @@ class resblock_torch(nn.Module):
         assert self.in_channels == input_.shape[1]
         x = self.bn1(input_)
         x = self.conv_1(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.conv_2(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.bn2(x)
         x = x + input_
 
         x = self.conv_3(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.conv_4(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.bn3(x)
         x = x + input_
 
         x = self.conv_5(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.conv_6(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.bn4(x)
         x = x + input_
         x = self.bn5(x)
@@ -140,14 +141,14 @@ class unet(torch.nn.Module):
         x = self.res_12(x)
 
         x = self.conv_6(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.bn1(x)
 
         x = self.conv_7(x)
-        x = nn.ReLU()(x)
+        x = F.relu(x)
         x = self.bn2(x)
 
         x = self.out_conv(x)
-        x = nn.Softmax(dim=1)(x)
+        # x = nn.Softmax(dim=1)(x)
         # print(x.shape)
         return x

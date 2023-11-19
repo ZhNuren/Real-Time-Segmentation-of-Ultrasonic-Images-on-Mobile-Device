@@ -23,9 +23,11 @@ def get_model(MODEL, IMAGE_SIZE):
         model = unet(in_channels=1, out_channels=2)
 
     elif MODEL == "MobileViTV2":
-        from transformers import MobileViTV2ForSemanticSegmentation, MobileViTV2Config
+        from transformers import MobileViTV2Config
+        # from models.mobilevit_v2 import MobileViTV2ForSemanticSegmentation
+        from transformers import MobileViTV2ForSemanticSegmentation
 
-        configuration = MobileViTV2Config(num_channels=1, image_size=IMAGE_SIZE, num_classes=2, return_dict=False, output_stride=8)
+        configuration = MobileViTV2Config(num_channels=1, image_size=IMAGE_SIZE, num_classes=2, return_dict=True, output_stride=8)
         model = MobileViTV2ForSemanticSegmentation(configuration)
 
     elif MODEL == "Segformer":
