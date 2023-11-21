@@ -1,0 +1,47 @@
+apply plugin: 'com.android.application'
+
+
+repositories {
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
+}
+
+
+android {
+
+    compileSdk 31
+
+
+    defaultConfig {
+        applicationId "org.pytorch.demo.imagesegmentation"
+        minSdkVersion 28
+        targetSdkVersion 31
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    namespace 'org.pytorch.imagesegmentation'
+
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    def camerax_version = "1.0.0-alpha05"
+    implementation "androidx.camera:camera-core:$camerax_version"
+    implementation "androidx.camera:camera-camera2:$camerax_version"
+    implementation 'org.pytorch:pytorch_android_lite:1.12.1'
+    implementation 'org.pytorch:pytorch_android_torchvision_lite:1.10.0'
+}

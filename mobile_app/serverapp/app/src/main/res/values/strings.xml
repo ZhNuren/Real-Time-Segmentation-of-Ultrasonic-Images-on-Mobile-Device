@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Aragorn Server</string>
+    <string name="an_image">an image</string>
+    <string name="image_view1">Mask</string>
+    <string name="image_view2">Original</string>
+    <string name="segment">Test Video</string>
+    <string name="run_model">Running the model...</string>
+    <string name="start">Start Server</string>
+    <string name="select">Select Video</string>
+    <string name="live">Live</string>
+    <string name="stop">Stop Server</string>
+    <string name="segresnet">SegResNet</string>
+    <string name="mobilenet">MobileNetV3</string>
+    <string name="resunet">ResUnet</string>
+
+</resources>
