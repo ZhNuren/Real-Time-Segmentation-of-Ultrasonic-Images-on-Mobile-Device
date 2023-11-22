@@ -51,7 +51,7 @@ public class MediaProjectionService extends Service {
     private volatile boolean isServerRunning = true; // Flag to control server thread
 
     private MediaProjection mediaProjection;
-    private final byte[] FRAME_DELIMITER = "FRAME_END".getBytes();
+    private final byte[] FRAME_DELIMITER = "end".getBytes();
 
     private VirtualDisplay virtualDisplay;
     private ImageReader imageReader;

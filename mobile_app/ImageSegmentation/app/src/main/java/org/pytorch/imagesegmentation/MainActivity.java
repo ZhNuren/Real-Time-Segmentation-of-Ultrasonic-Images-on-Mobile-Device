@@ -65,14 +65,9 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private boolean mStopThread;
     private boolean isReceivingData = false;
     private Socket clientSocket = null;
-    private final byte[] FRAME_DELIMITER = "FRAME_END".getBytes();
+    private final byte[] FRAME_DELIMITER = "end".getBytes();
+    long inferenceTime = 0;
 
-
-
-
-
-    // see http://host.robots.ox.ac.uk:8080/pascal/VOC/voc2007/segexamples/index.html for the list of classes with indexes
-    private static final int CLASSNUM = 2;
 
     static class AnalysisResult {
         private final Bitmap cameraFrame;
@@ -110,32 +105,42 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         }
     }
 
+
+
     private void startClient() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    clientSocket = new Socket("192.168.1.10", 8080);
-                    InputStream inputStream = clientSocket.getInputStream();
+                    // clientSocket = new Socket("192.168.1.10", 8080); //Clarius Device
+                    clientSocket = new Socket("10.127.80.156", 8080); //MBZUAI Student
+
+                    BufferedInputStream inputStream = new BufferedInputStream(clientSocket.getInputStream());
 
                     isReceivingData = true;
                     ByteArrayOutputStream frameBuffer = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[1024]; // Adjust the buffer size as needed
 
-                    int nextByte;
+                    int bytesRead;
                     while (isReceivingData && !clientSocket.isClosed()) {
-                        nextByte = inputStream.read(); // Read next byte
-                        if (nextByte == -1) break; // End of stream
+                        bytesRead = inputStream.read(buffer);
+                        if (bytesRead == -1) break; // End of stream
 
-                        frameBuffer.write(nextByte);
-                        // Check if the current buffer ends with the frame delimiter
-                        if (endsWith(frameBuffer.toByteArray(), FRAME_DELIMITER)) {
-                            byte[] frameBytes = frameBuffer.toByteArray();
-                            frameBytes = Arrays.copyOf(frameBytes, frameBytes.length - FRAME_DELIMITER.length); // Remove delimiter
+                        frameBuffer.write(buffer, 0, bytesRead);
+
+                        byte[] frameData = frameBuffer.toByteArray();
+                        int delimiterIndex = findDelimiterIndex(frameData, FRAME_DELIMITER);
+                        if (delimiterIndex != -1) { // Check if delimiter was found
+                            byte[] frameBytes = Arrays.copyOf(frameData, delimiterIndex); // Extract frame data until delimiter
                             processFrame(frameBytes); // Process the frame
-                            frameBuffer.reset(); // Reset buffer for the next frame
+
+                            // Prepare buffer for next frame (retain data after delimiter)
+                            frameBuffer.reset();
+                            if (frameData.length > delimiterIndex + FRAME_DELIMITER.length) {
+                                frameBuffer.write(frameData, delimiterIndex + FRAME_DELIMITER.length, frameData.length - (delimiterIndex + FRAME_DELIMITER.length));
+                            }
                         }
                     }
-
 
                     frameBuffer.close();
                     inputStream.close();
@@ -147,24 +152,117 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         }).start();
     }
 
-    private boolean endsWith(byte[] data, byte[] delimiter) {
-        if (data.length < delimiter.length) {
-            return false;
-        }
-        for (int i = 1; i <= delimiter.length; i++) {
-            if (data[data.length - i] != delimiter[delimiter.length - i]) {
-                return false;
+
+    private int[] computeLPSArray(byte[] pattern) {
+        int[] lps = new int[pattern.length];
+        int length = 0; // Length of the previous longest prefix suffix
+
+        int i = 1;
+        lps[0] = 0; // lps[0] is always 0
+
+        // The loop calculates lps[i] for i = 1 to pattern.length - 1
+        while (i < pattern.length) {
+            if (pattern[i] == pattern[length]) {
+                length++;
+                lps[i] = length;
+                i++;
+            } else { // pattern[i] != pattern[length]
+                if (length != 0) {
+                    length = lps[length - 1];
+                    // Note that we do not increment i here
+                } else { // if (length == 0)
+                    lps[i] = length;
+                    i++;
+                }
             }
         }
-        return true;
+        return lps;
     }
 
-    private void processFrame(byte[] frameBytes) {
-        System.out.println("Nuren "+ " processing frame" );
+    private int findDelimiterIndex(byte[] data, byte[] delimiter) {
+        if (data.length < delimiter.length) {
+            return -1;
+        }
 
-        final Bitmap bitmap = BitmapFactory.decodeByteArray(frameBytes, 0, frameBytes.length);
+        int[] lps = computeLPSArray(delimiter);
+
+        int i = 0; // Index for data[]
+        int j = 0; // Index for delimiter[]
+
+        while (i < data.length) {
+            if (delimiter[j] == data[i]) {
+                j++;
+                i++;
+            }
+            if (j == delimiter.length) {
+                return i - j; // Found delimiter at index i - j
+            } else if (i < data.length && delimiter[j] != data[i]) {
+                if (j != 0) {
+                    j = lps[j - 1];
+                } else {
+                    i = i + 1;
+                }
+            }
+        }
+        return -1; // Delimiter not found
+    }
+
+
+
+    // private void startClient() {
+    //     new Thread(new Runnable() {
+    //         @Override
+    //         public void run() {
+    //             try {
+    //                 clientSocket = new Socket("192.168.1.10", 8080);
+    //                 InputStream inputStream = clientSocket.getInputStream();
+
+    //                 isReceivingData = true;
+    //                 ByteArrayOutputStream frameBuffer = new ByteArrayOutputStream();
+
+    //                 int nextByte;
+    //                 while (isReceivingData && !clientSocket.isClosed()) {
+    //                     nextByte = inputStream.read(); // Read next byte
+    //                     if (nextByte == -1) break; // End of stream
+
+    //                     frameBuffer.write(nextByte);
+    //                     // Check if the current buffer ends with the frame delimiter
+    //                     if (endsWith(frameBuffer.toByteArray(), FRAME_DELIMITER)) {
+    //                         byte[] frameBytes = frameBuffer.toByteArray();
+    //                         frameBytes = Arrays.copyOf(frameBytes, frameBytes.length - FRAME_DELIMITER.length); // Remove delimiter
+    //                         processFrame(frameBytes); // Process the frame
+    //                         frameBuffer.reset(); // Reset buffer for the next frame
+    //                     }
+    //                 }
+
+
+    //                 frameBuffer.close();
+    //                 inputStream.close();
+    //                 clientSocket.close();
+    //             } catch (IOException e) {
+    //                 e.printStackTrace();
+    //             }
+    //         }
+    //     }).start();
+    // }
+
+    // private boolean endsWith(byte[] data, byte[] delimiter) {
+    //     if (data.length < delimiter.length) {
+    //         return false;
+    //     }
+    //     for (int i = 1; i <= delimiter.length; i++) {
+    //         if (data[data.length - i] != delimiter[delimiter.length - i]) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
+
+    private void processFrame(byte[] frameBytes) {
+
+        Bitmap bitmap = BitmapFactory.decodeByteArray(frameBytes, 0, frameBytes.length);
+        bitmap = Bitmap.createScaledBitmap(bitmap, 256, 256, true);
         if (bitmap != null) {
-            System.out.println("Nuren "+ " bitmap not null");
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -298,8 +396,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         });
         try {
             mModule1 = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "segresnet.ptl"));
-//            mModule2 = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "res_unet.ptl"));
-//            mModule3 = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "mobilenet_v3.ptl"));
+//            mModule1 = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "mobilenet_v3.ptl"));
 
         } catch (IOException e) {
             Log.e("ImageSegmentation", "Error reading assets", e);
@@ -313,63 +410,112 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     //function to segment image
 
     private void segmentImage() {
-
-        float[] mean = {0.0F, 0.0F, 0.0F};
-        float[] std = {1.0F, 1.0F, 1.0F};
-        final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(mBitmap,
-                mean, std);
-
-        final float[] inputs = inputTensor.getDataAsFloatArray();
-
-
+        
         final long startTime = SystemClock.elapsedRealtime();
 
+        // Image preprocessing optimized
+        float[] mean = {0.0F, 0.0F, 0.0F};
+        float[] std = {1.0F, 1.0F, 1.0F};
+        final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(mBitmap, mean, std);
+
+        // Neural network inference
         Map<String, IValue> outTensors = mModule1.forward(IValue.from(inputTensor)).toDictStringKey();
-        System.out.println("Nuren "+ " forward");
-        final long inferenceTime = SystemClock.elapsedRealtime() - startTime;
-        Log.d("ImageSegmentation", "inference time (ms): " + inferenceTime);
+        
 
         final Tensor outputTensor = outTensors.get("out").toTensor();
-
         final float[] scores = outputTensor.getDataAsFloatArray();
-        //java.lang.IllegalStateException: Tensor of type Tensor_int64 cannot return data as float array.
-//        final long[] scores = outputTensor.getDataAsLongArray();
+
         int width = mBitmap.getWidth();
         int height = mBitmap.getHeight();
-
         int[] intValues = new int[width * height];
+
+        double maxnum = 0.95;
+        // Parallel processing for pixel manipulation (if feasible)
         for (int j = 0; j < height; j++) {
             for (int k = 0; k < width; k++) {
-                double maxnum = 0.95;
                 float score = scores[0 * (width * height) + j * width + k];
-                if (score > maxnum) {
-                    intValues[j * width + k] = 0xFFFF0000;
-                } else
-                    intValues[j * width + k] = 0xFF000000;
+                intValues[j * width + k] = score > maxnum ? 0xFFFF0000 : 0xFF000000;
             }
         }
 
+        Bitmap outputBitmap = mBitmap.copy(mBitmap.getConfig(), true);
+        outputBitmap.setPixels(intValues, 0, width, 0, 0, width, height);
+        inferenceTime = SystemClock.elapsedRealtime() - startTime;
+        Log.d("ImageSegmentation", "inference time (ms): " + inferenceTime);
 
-        Bitmap bmpSegmentation = Bitmap.createScaledBitmap(mBitmap, width, height, true);
-        Bitmap outputBitmap = bmpSegmentation.copy(bmpSegmentation.getConfig(), true);
-        outputBitmap.setPixels(intValues, 0, outputBitmap.getWidth(), 0, 0, outputBitmap.getWidth(), outputBitmap.getHeight());
-        final Bitmap transferredBitmap = Bitmap.createScaledBitmap(outputBitmap, mBitmap.getWidth(), mBitmap.getHeight(), true);
+        // Update UI efficiently
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 mTextView.setVisibility(View.VISIBLE);
                 mTextView.setText("FPS: " + String.format("%.2f", 1000.f / inferenceTime));
-//                mImageView.setImageBitmap(transferredBitmap);
-//                mImageView2.setImageBitmap(mBitmap);
                 mCustomCameraView.setVisibility(View.VISIBLE);
                 mCustomCameraView.setCameraFrame(mBitmap, true);
-                mCustomCameraView.setSegmentationMask(transferredBitmap);
+                mCustomCameraView.setSegmentationMask(outputBitmap);
                 mButtonSelect.setVisibility(View.INVISIBLE);
                 mButtonStop.setVisibility(View.VISIBLE);
-
             }
         });
     }
+
+//     private void segmentImage() {
+
+//         float[] mean = {0.0F, 0.0F, 0.0F};
+//         float[] std = {1.0F, 1.0F, 1.0F};
+//         final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(mBitmap,
+//                 mean, std);
+
+//         final float[] inputs = inputTensor.getDataAsFloatArray();
+
+
+//         final long startTime = SystemClock.elapsedRealtime();
+
+//         Map<String, IValue> outTensors = mModule1.forward(IValue.from(inputTensor)).toDictStringKey();
+//         System.out.println("Nuren "+ " forward");
+//         final long inferenceTime = SystemClock.elapsedRealtime() - startTime;
+//         Log.d("ImageSegmentation", "inference time (ms): " + inferenceTime);
+
+//         final Tensor outputTensor = outTensors.get("out").toTensor();
+
+//         final float[] scores = outputTensor.getDataAsFloatArray();
+//         //java.lang.IllegalStateException: Tensor of type Tensor_int64 cannot return data as float array.
+// //        final long[] scores = outputTensor.getDataAsLongArray();
+//         int width = mBitmap.getWidth();
+//         int height = mBitmap.getHeight();
+
+//         int[] intValues = new int[width * height];
+//         for (int j = 0; j < height; j++) {
+//             for (int k = 0; k < width; k++) {
+//                 double maxnum = 0.95;
+//                 float score = scores[0 * (width * height) + j * width + k];
+//                 if (score > maxnum) {
+//                     intValues[j * width + k] = 0xFFFF0000;
+//                 } else
+//                     intValues[j * width + k] = 0xFF000000;
+//             }
+//         }
+
+
+//         Bitmap bmpSegmentation = Bitmap.createScaledBitmap(mBitmap, width, height, true);
+//         Bitmap outputBitmap = bmpSegmentation.copy(bmpSegmentation.getConfig(), true);
+//         outputBitmap.setPixels(intValues, 0, outputBitmap.getWidth(), 0, 0, outputBitmap.getWidth(), outputBitmap.getHeight());
+//         final Bitmap transferredBitmap = Bitmap.createScaledBitmap(outputBitmap, mBitmap.getWidth(), mBitmap.getHeight(), true);
+//         runOnUiThread(new Runnable() {
+//             @Override
+//             public void run() {
+//                 mTextView.setVisibility(View.VISIBLE);
+//                 mTextView.setText("FPS: " + String.format("%.2f", 1000.f / inferenceTime));
+// //                mImageView.setImageBitmap(transferredBitmap);
+// //                mImageView2.setImageBitmap(mBitmap);
+//                 mCustomCameraView.setVisibility(View.VISIBLE);
+//                 mCustomCameraView.setCameraFrame(mBitmap, true);
+//                 mCustomCameraView.setSegmentationMask(transferredBitmap);
+//                 mButtonSelect.setVisibility(View.INVISIBLE);
+//                 mButtonStop.setVisibility(View.VISIBLE);
+
+//             }
+//         });
+//     }
 
     @Override
     public void run() {
@@ -391,17 +537,22 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         int frameRate = 30;
         int frameTime = 1000 / frameRate;
         int frameIndex = 0;
+        float avgFps = 0;
+        int numOfFramesProcessed = 0;
         while ((frameIndex < frameCount) && !mStopThread)  {
             Bitmap frame = mmr.getFrameAtTime(frameIndex * frameTime * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
             if (frame != null) {
                 Bitmap resizedFrame = Bitmap.createScaledBitmap(frame, 256, 256, true);
                 mBitmap = resizedFrame;
                 segmentImage();
+                avgFps = avgFps + inferenceTime;
+                numOfFramesProcessed++;
             }
             else if(frame == null && frameIndex != 0)
                 break;
             frameIndex++;
         }
+        System.out.println("Average FPS: " + (1000.f / avgFps)/numOfFramesProcessed);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
