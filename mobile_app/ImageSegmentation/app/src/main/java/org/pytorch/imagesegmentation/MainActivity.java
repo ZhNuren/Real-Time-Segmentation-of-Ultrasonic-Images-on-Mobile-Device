@@ -25,6 +25,7 @@ import org.pytorch.Module;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -67,6 +68,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private Socket clientSocket = null;
     private final byte[] FRAME_DELIMITER = "end".getBytes();
     long inferenceTime = 0;
+    boolean firstFrame = true;
+    float avgFps = 0;
 
 
     static class AnalysisResult {
@@ -112,9 +115,11 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             @Override
             public void run() {
                 try {
-                    // clientSocket = new Socket("192.168.1.10", 8080); //Clarius Device
-                    clientSocket = new Socket("10.127.80.156", 8080); //MBZUAI Student
+//                     clientSocket = new Socket("192.168.1.11", 8080); //Clarius Device
+//                    clientSocket = new Socket("10.127.80.156", 8080); //MBZUAI Student
+                    clientSocket = new Socket("192.168.180.183", 8080); //rikhat
 
+                    avgFps = 0;
                     BufferedInputStream inputStream = new BufferedInputStream(clientSocket.getInputStream());
 
                     isReceivingData = true;
@@ -206,68 +211,25 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         }
         return -1; // Delimiter not found
     }
-
-
-
-    // private void startClient() {
-    //     new Thread(new Runnable() {
-    //         @Override
-    //         public void run() {
-    //             try {
-    //                 clientSocket = new Socket("192.168.1.10", 8080);
-    //                 InputStream inputStream = clientSocket.getInputStream();
-
-    //                 isReceivingData = true;
-    //                 ByteArrayOutputStream frameBuffer = new ByteArrayOutputStream();
-
-    //                 int nextByte;
-    //                 while (isReceivingData && !clientSocket.isClosed()) {
-    //                     nextByte = inputStream.read(); // Read next byte
-    //                     if (nextByte == -1) break; // End of stream
-
-    //                     frameBuffer.write(nextByte);
-    //                     // Check if the current buffer ends with the frame delimiter
-    //                     if (endsWith(frameBuffer.toByteArray(), FRAME_DELIMITER)) {
-    //                         byte[] frameBytes = frameBuffer.toByteArray();
-    //                         frameBytes = Arrays.copyOf(frameBytes, frameBytes.length - FRAME_DELIMITER.length); // Remove delimiter
-    //                         processFrame(frameBytes); // Process the frame
-    //                         frameBuffer.reset(); // Reset buffer for the next frame
-    //                     }
-    //                 }
-
-
-    //                 frameBuffer.close();
-    //                 inputStream.close();
-    //                 clientSocket.close();
-    //             } catch (IOException e) {
-    //                 e.printStackTrace();
-    //             }
-    //         }
-    //     }).start();
-    // }
-
-    // private boolean endsWith(byte[] data, byte[] delimiter) {
-    //     if (data.length < delimiter.length) {
-    //         return false;
-    //     }
-    //     for (int i = 1; i <= delimiter.length; i++) {
-    //         if (data[data.length - i] != delimiter[delimiter.length - i]) {
-    //             return false;
-    //         }
-    //     }
-    //     return true;
-    // }
-
     private void processFrame(byte[] frameBytes) {
-
+        Bitmap fbitmap = null;
         Bitmap bitmap = BitmapFactory.decodeByteArray(frameBytes, 0, frameBytes.length);
-        bitmap = Bitmap.createScaledBitmap(bitmap, 256, 256, true);
-        if (bitmap != null) {
+        if (bitmap!=null) {
+             fbitmap = Bitmap.createScaledBitmap(bitmap, 256, 256, true);
+        }
+        final Bitmap finalbitmap = fbitmap;
+        if (finalbitmap != null) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mBitmap = bitmap;
+                    mBitmap = finalbitmap;
                     segmentImage();
+                    if (firstFrame) {
+                        avgFps = 1000.f/inferenceTime;
+                        firstFrame = false;
+                    }
+                    avgFps = avgFps + 1000.f/inferenceTime;
+                    avgFps = avgFps/2;
                 }
             });
         } else {
@@ -277,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
     private void stopClient() {
         isReceivingData = false;
+        firstFrame = true;
         if (clientSocket != null && !clientSocket.isClosed()) {
             try {
                 clientSocket.close();
@@ -290,6 +253,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     }
 
     private void stopVideo() {
+        firstFrame = true;
         mButtonSegment.setEnabled(true);
         mStopThread = true;
 
@@ -354,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 //                startActivity(intent);
 //                mStopThread = true;
 //                System.out.println("LIVE BUTTON CLICKED");
-
+                mButtonSegment.setEnabled(false);
                 startClient();
 
             }
@@ -380,6 +344,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             public void onClick(View v) {
                 stopVideo();
                 stopClient();
+                mButtonSegment.setVisibility(View.VISIBLE);
+
             }
         });
 
@@ -410,7 +376,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     //function to segment image
 
     private void segmentImage() {
-        
+
         final long startTime = SystemClock.elapsedRealtime();
 
         // Image preprocessing optimized
@@ -420,7 +386,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         // Neural network inference
         Map<String, IValue> outTensors = mModule1.forward(IValue.from(inputTensor)).toDictStringKey();
-        
+
 
         final Tensor outputTensor = outTensors.get("out").toTensor();
         final float[] scores = outputTensor.getDataAsFloatArray();
@@ -448,7 +414,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             @Override
             public void run() {
                 mTextView.setVisibility(View.VISIBLE);
-                mTextView.setText("FPS: " + String.format("%.2f", 1000.f / inferenceTime));
+                mTextView.setText("Average FPS: " + String.format("%.2f", avgFps));
                 mCustomCameraView.setVisibility(View.VISIBLE);
                 mCustomCameraView.setCameraFrame(mBitmap, true);
                 mCustomCameraView.setSegmentationMask(outputBitmap);
@@ -537,22 +503,24 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         int frameRate = 30;
         int frameTime = 1000 / frameRate;
         int frameIndex = 0;
-        float avgFps = 0;
-        int numOfFramesProcessed = 0;
+        avgFps = 0;
         while ((frameIndex < frameCount) && !mStopThread)  {
             Bitmap frame = mmr.getFrameAtTime(frameIndex * frameTime * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
             if (frame != null) {
                 Bitmap resizedFrame = Bitmap.createScaledBitmap(frame, 256, 256, true);
                 mBitmap = resizedFrame;
                 segmentImage();
-                avgFps = avgFps + inferenceTime;
-                numOfFramesProcessed++;
+                if (firstFrame) {
+                    avgFps = 1000.f/inferenceTime;
+                    firstFrame = false;
+                }
+                avgFps = avgFps + 1000.f/inferenceTime;
+                avgFps = avgFps/2;
             }
             else if(frame == null && frameIndex != 0)
                 break;
             frameIndex++;
         }
-        System.out.println("Average FPS: " + (1000.f / avgFps)/numOfFramesProcessed);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
