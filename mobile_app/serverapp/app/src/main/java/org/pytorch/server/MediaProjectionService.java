@@ -115,20 +115,19 @@ public class MediaProjectionService extends Service {
     }
 
     private Bitmap centerCropToSquare(Bitmap bitmap) {
-        // Dimensions for the resulting square
-        int squareSize = Math.min(bitmap.getWidth(), bitmap.getHeight());
+        // Keeping the full width and 75% of the height
+        int width = bitmap.getWidth();
+        int height = (int) (bitmap.getHeight() * 0.75);
 
-        // Calculating the top left corner of the crop area
-        int x = 0; // No cropping from sides as the width is already 480
-        int y = (bitmap.getHeight() - squareSize) / 2; // Cropping from top and bottom
+        // Calculating the top coordinate for the crop to center the height
+        int x = 0; // Keep the full width, no cropping from sides
+        int y = (bitmap.getHeight() - height) / 2; // Cropping top and bottom to center
 
         // Creating the cropped bitmap
-        Bitmap croppedBitmap = Bitmap.createBitmap(bitmap, x, y, squareSize, squareSize);
-
+        Bitmap croppedBitmap = Bitmap.createBitmap(bitmap, x, y, width, height);
 
         return croppedBitmap;
     }
-
     private void setupScreenCapture() {
         // Initialize screen capture parameters like screenDensity, width, and height
         // This can be done similar to how it's done in MainActivity
