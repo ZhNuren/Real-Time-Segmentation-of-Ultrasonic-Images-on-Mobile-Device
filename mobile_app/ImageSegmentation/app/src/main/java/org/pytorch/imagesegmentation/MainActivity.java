@@ -14,10 +14,10 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.EditText;
+
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.VideoView;
 
 import org.pytorch.IValue;
 import org.pytorch.LiteModuleLoader;
@@ -47,21 +47,18 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private final String[] mTestVideos = {"video1", "video2", "video3"};
     private int mTestVideoIndex = 0;
     private final String TAG = MainActivity.class.getSimpleName();
-    private Thread mThread;
     private Button mButtonSegment;
     private Button mButtonSelect;
-    private Button mButtonSegresnet;
-    private Button mButtonResunet;
-    private Button mButtonMobilenet;
+    private Button mButtonConnect;
+    private Button mButtonCancel;
     private Button mButtonStop;
     private Button mButtonLive;
     private TextView mTextView;
+    private EditText mPlainText;
     private ProgressBar mProgressBar;
     private Bitmap mBitmap = null;
     private Bitmap mBitmapStart = null;
     private Module mModule1 = null;
-    private Module mModule2 = null;
-    private Module mModule3 = null;
     private String mImagename = "11.jpeg";
     private boolean mStopThread;
     private boolean isReceivingData = false;
@@ -70,25 +67,10 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     long inferenceTime = 0;
     boolean firstFrame = true;
     float avgFps = 0;
+    String server = "";
 
 
-    static class AnalysisResult {
-        private final Bitmap cameraFrame;
-        private final Bitmap segmentationMask;
 
-        public AnalysisResult(Bitmap cameraFrame, Bitmap segmentationMask) {
-            this.cameraFrame = cameraFrame;
-            this.segmentationMask = segmentationMask;
-        }
-
-        public Bitmap getCameraFrame() {
-            return cameraFrame;
-        }
-
-        public Bitmap getSegmentationMask() {
-            return segmentationMask;
-        }
-    }
     public static String assetFilePath(Context context, String assetName) throws IOException {
         File file = new File(context.getFilesDir(), assetName);
         if (file.exists() && file.length() > 0) {
@@ -115,9 +97,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             @Override
             public void run() {
                 try {
-//                     clientSocket = new Socket("192.168.1.11", 8080); //Clarius Device
-//                    clientSocket = new Socket("10.127.80.156", 8080); //MBZUAI Student
-                    clientSocket = new Socket("192.168.180.183", 8080); //rikhat
+                    clientSocket = new Socket(server, 8080); //rikhat
 
                     avgFps = 0;
                     BufferedInputStream inputStream = new BufferedInputStream(clientSocket.getInputStream());
@@ -150,9 +130,27 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                     frameBuffer.close();
                     inputStream.close();
                     clientSocket.close();
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mTextView.setVisibility(View.INVISIBLE);
+                        mCustomCameraView.setCameraFrame(mBitmapStart, false);
+                        mCustomCameraView.setSegmentationMask(mBitmapStart);
+                        mButtonSegment.setVisibility(View.VISIBLE);
+                        mButtonSegment.setEnabled(true);
+                        mButtonSelect.setVisibility(View.VISIBLE);
+                        mButtonStop.setVisibility(View.INVISIBLE);
+                        mButtonLive.setVisibility(View.VISIBLE);
+                        mProgressBar.setVisibility(ProgressBar.INVISIBLE);
+                        mButtonSegment.setText(getString(R.string.segment));
+
+                    }
+                });
             }
         }).start();
     }
@@ -294,17 +292,13 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             Log.e("ImageSegmentation", "Error reading assets", e);
             finish();
         }
-
+        mButtonConnect = findViewById(R.id.connectButton);
+        mButtonCancel = findViewById(R.id.cancelButton);
+        mPlainText = findViewById(R.id.plainText);
         mTextView = findViewById(R.id.textView2);
         mTextView.setTextColor(Color.parseColor("#FF0000"));
         mTextView.setVisibility(View.INVISIBLE);
 
-        mButtonSegresnet = findViewById(R.id.segresnet);
-        mButtonMobilenet = findViewById(R.id.mobilenet);
-        mButtonResunet = findViewById(R.id.resunet);
-        mButtonSegresnet.setVisibility(View.INVISIBLE);
-        mButtonMobilenet.setVisibility(View.INVISIBLE);
-        mButtonResunet.setVisibility(View.INVISIBLE);
         mCustomCameraView = findViewById(R.id.custom_camera_view);
         mCustomCameraView.setSegmentationMask(mBitmapStart);
         mCustomCameraView.setCameraFrame(mBitmapStart, false);
@@ -314,15 +308,43 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         mButtonLive = findViewById(R.id.liveButton);
         mButtonLive.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-//                Intent intent = new Intent(MainActivity.this, LiveVideoClassificationActivity.class);
-//                startActivity(intent);
-//                mStopThread = true;
-//                System.out.println("LIVE BUTTON CLICKED");
-                mButtonSegment.setEnabled(false);
-                startClient();
-
+                mButtonStop.setVisibility(View.INVISIBLE);
+                mButtonConnect.setVisibility(View.VISIBLE);
+                mButtonLive.setVisibility(View.INVISIBLE);
+                mPlainText.setVisibility(View.VISIBLE);
+                mButtonCancel.setVisibility(View.VISIBLE);
+                mButtonSegment.setVisibility(View.INVISIBLE);
+                mButtonSelect.setVisibility(View.INVISIBLE);
             }
         });
+
+        mButtonConnect.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                mButtonConnect.setVisibility(View.INVISIBLE);
+                mButtonSegment.setVisibility(View.VISIBLE);
+                mButtonStop.setVisibility(View.VISIBLE);
+                mButtonSegment.setEnabled(false);
+                mProgressBar.setVisibility(ProgressBar.VISIBLE);
+                mButtonSegment.setText(getString(R.string.run_model));
+                server = mPlainText.getText().toString();
+                mPlainText.setVisibility(View.INVISIBLE);
+                mButtonCancel.setVisibility(View.INVISIBLE);
+                startClient();
+            }
+        });
+
+        mButtonCancel.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                mButtonConnect.setVisibility(View.INVISIBLE);
+                mButtonLive.setVisibility(View.VISIBLE);
+                mPlainText.setVisibility(View.INVISIBLE);
+                mButtonCancel.setVisibility(View.INVISIBLE);
+                mButtonSegment.setVisibility(View.VISIBLE);
+                mButtonSelect.setVisibility(View.VISIBLE);
+            }
+        });
+
+
 
 
         mButtonSelect = findViewById(R.id.restartButton);
@@ -342,9 +364,15 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         mButtonStop.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+                mButtonSelect.setVisibility(View.VISIBLE);
+                mButtonLive.setVisibility(View.VISIBLE);
+                mButtonSegment.setVisibility(View.VISIBLE);
+                mProgressBar.setVisibility(ProgressBar.INVISIBLE);
+                mButtonStop.setVisibility(View.INVISIBLE);
+                mButtonSegment.setText(getString(R.string.segment));
                 stopVideo();
                 stopClient();
-                mButtonSegment.setVisibility(View.VISIBLE);
+
 
             }
         });
@@ -368,8 +396,6 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             Log.e("ImageSegmentation", "Error reading assets", e);
             finish();
         }
-        //make videoview invisible
-
 
     }
 
@@ -424,65 +450,6 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         });
     }
 
-//     private void segmentImage() {
-
-//         float[] mean = {0.0F, 0.0F, 0.0F};
-//         float[] std = {1.0F, 1.0F, 1.0F};
-//         final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(mBitmap,
-//                 mean, std);
-
-//         final float[] inputs = inputTensor.getDataAsFloatArray();
-
-
-//         final long startTime = SystemClock.elapsedRealtime();
-
-//         Map<String, IValue> outTensors = mModule1.forward(IValue.from(inputTensor)).toDictStringKey();
-//         System.out.println("Nuren "+ " forward");
-//         final long inferenceTime = SystemClock.elapsedRealtime() - startTime;
-//         Log.d("ImageSegmentation", "inference time (ms): " + inferenceTime);
-
-//         final Tensor outputTensor = outTensors.get("out").toTensor();
-
-//         final float[] scores = outputTensor.getDataAsFloatArray();
-//         //java.lang.IllegalStateException: Tensor of type Tensor_int64 cannot return data as float array.
-// //        final long[] scores = outputTensor.getDataAsLongArray();
-//         int width = mBitmap.getWidth();
-//         int height = mBitmap.getHeight();
-
-//         int[] intValues = new int[width * height];
-//         for (int j = 0; j < height; j++) {
-//             for (int k = 0; k < width; k++) {
-//                 double maxnum = 0.95;
-//                 float score = scores[0 * (width * height) + j * width + k];
-//                 if (score > maxnum) {
-//                     intValues[j * width + k] = 0xFFFF0000;
-//                 } else
-//                     intValues[j * width + k] = 0xFF000000;
-//             }
-//         }
-
-
-//         Bitmap bmpSegmentation = Bitmap.createScaledBitmap(mBitmap, width, height, true);
-//         Bitmap outputBitmap = bmpSegmentation.copy(bmpSegmentation.getConfig(), true);
-//         outputBitmap.setPixels(intValues, 0, outputBitmap.getWidth(), 0, 0, outputBitmap.getWidth(), outputBitmap.getHeight());
-//         final Bitmap transferredBitmap = Bitmap.createScaledBitmap(outputBitmap, mBitmap.getWidth(), mBitmap.getHeight(), true);
-//         runOnUiThread(new Runnable() {
-//             @Override
-//             public void run() {
-//                 mTextView.setVisibility(View.VISIBLE);
-//                 mTextView.setText("FPS: " + String.format("%.2f", 1000.f / inferenceTime));
-// //                mImageView.setImageBitmap(transferredBitmap);
-// //                mImageView2.setImageBitmap(mBitmap);
-//                 mCustomCameraView.setVisibility(View.VISIBLE);
-//                 mCustomCameraView.setCameraFrame(mBitmap, true);
-//                 mCustomCameraView.setSegmentationMask(transferredBitmap);
-//                 mButtonSelect.setVisibility(View.INVISIBLE);
-//                 mButtonStop.setVisibility(View.VISIBLE);
-
-//             }
-//         });
-//     }
-
     @Override
     public void run() {
 
@@ -506,6 +473,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         avgFps = 0;
         while ((frameIndex < frameCount) && !mStopThread)  {
             Bitmap frame = mmr.getFrameAtTime(frameIndex * frameTime * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
+            frame = frame.copy(Bitmap.Config.ARGB_8888, true);
             if (frame != null) {
                 Bitmap resizedFrame = Bitmap.createScaledBitmap(frame, 256, 256, true);
                 mBitmap = resizedFrame;
@@ -536,6 +504,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
             }
         });
+
 
 
     }

@@ -36,22 +36,8 @@ import java.nio.ByteBuffer;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ServerSocket serverSocket;
-
-    Thread serverThread = null;
-    private static final int SERVER_PORT = 8080;
-
     private MediaProjectionManager projectionManager;
-    private MediaProjection mediaProjection;
-    private VirtualDisplay virtualDisplay;
-    private ImageReader imageReader;
     private static final int REQUEST_CODE_CAPTURE_PERM = 1234;
-
-
-
-    private Socket clientSocket;
-    private volatile boolean isServerRunning = true; // Flag to control server thread
-
 
 
 
