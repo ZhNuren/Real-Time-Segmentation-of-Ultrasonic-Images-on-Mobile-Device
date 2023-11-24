@@ -52,10 +52,15 @@ To start learning:
 ## Test and Mobile Conversion
 
 `deep_learning/mobole.ipynb` and `deep_learning/test.ipynb` provide examples on how to test models and convert weights for mobile application. On the top of each notebook it is required to enter the name of run log which is located in `runs` folder after training is finished.
+Make sure you put generated .ptl file under 'Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/mobile_app/serverapp/app/src/main/assets'.
 
 
-### Use Android Studio
+## Use Android Studio
+### Server side
+Open serverapp project inside mobile_app folder using Android Studio. Note that the server device will be the the phone that has application with API to cast scans from ultrasonic devices directly to your phone screen.
+You will have to specify 'desiredFrameRate' in the MediaProjectionService.java which is dependent on what kind of mobile device you want to do a segmentation. It should be close to FPS of the device on this task. You can check it by pressing 'Test Video' button on the main app.
 
+### Client side
 Open the ImageSegmentation project using Android Studio. Note the app's `build.gradle` file has the following lines:
 
 ```
@@ -69,12 +74,17 @@ and in the MainActivity.java, the code below is used to load the model:
 ```
 mModule1 = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "segresnet.ptl"));
 ```
+Make sure that the name of your .ptl file is similar with the name of the model on this line.
 
-### Run the app
-Select an Android emulator or device and build and run the app. The example image and its segmented result are as follows:
+## Run the app
+### APK file
+Install 'aragorn server' and 'aragorn client' applications on corresponding devices explained above. Once installed, make sure both devices are under same network. Press 'start server' from server side and allow screen recording.
+Get IP address of the server device and paste it as follows and press connect:
+![photo_5407065235698864054_y](https://github.com/ZhNuren/Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/assets/43644508/6f6213bf-f6c2-47e8-af2d-4d631edca60b)
+![photo_5407065235698864053_y](https://github.com/ZhNuren/Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/assets/43644508/9479df66-8021-4c38-a39d-324b765371bd)
 
-![](screenshot1.png)
-![](screenshot2.png)
+Please note that we are using SegResNet model and 'desiredFrameRate' is set to 10 from server side as we are getting FPS around that number on client side.
 
-Note that the example image used in the repo is pretty large (400x400) so the segmentation process may take about 10 seconds. You may use an image of smaller size but the segmentation result may be less accurate.
+### Android Studio
+Open corresponding projects 'ImageSegmentation', 'serverapp' for client and server sides. Connect devices, build and run corresponding projects on you devices.
 
