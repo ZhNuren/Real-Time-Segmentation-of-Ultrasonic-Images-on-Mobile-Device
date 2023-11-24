@@ -58,7 +58,7 @@ Make sure you put generated .ptl file under `Real-Time-Segmentation-of-Ultrasoni
 ## Use Android Studio
 ### Server side
 Open `serverapp` project inside `mobile_app` folder using Android Studio. Note that the server device will be the the phone that has application with API to cast scans from ultrasonic devices directly to your phone screen.
-You will have to specify `desiredFrameRate` in the `MediaProjectionService.java` which is dependent on what kind of mobile device you want to do a segmentation. It should be close to FPS of the device on this task. You can check it by pressing 'Test Video' button on the main app.
+You will have to specify `desiredFrameRate` in the `MediaProjectionService.java` which is dependent on what kind of mobile device you want to do a segmentation. It should be close to FPS of the device on this task. You can check it by pressing `Test Video` button on the main app.
 
 ### Client side
 Open the `ImageSegmentation` project using Android Studio. Note the app's `build.gradle` file has the following lines:
