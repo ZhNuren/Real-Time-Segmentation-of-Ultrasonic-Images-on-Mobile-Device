@@ -53,33 +53,21 @@ To start learning:
 
 `deep_learning/mobole.ipynb` and `deep_learning/test.ipynb` provide examples on how to test models and convert weights for mobile application. On the top of each notebook it is required to enter the name of run log which is located in `runs` folder after training is finished.
 
-### Prepare the Model
-
-If you don't have the PyTorch 1.10.0 environment set up, you can download the optimized-for-mobile Mobile Interpreter version of model file to the `android-demo-app/ImageSegmentation/app/src/main/assets` folder using the link [here](https://pytorch-mobile-demo-apps.s3.us-east-2.amazonaws.com/deeplabv3_scripted.pt).
-
-Otherwise, open a terminal window, first install PyTorch 1.10.0 and torchvision 0.11.1 using command like `pip install torch torchvision`, then run the following commands:
-
-```
-git clone https://github.com/pytorch/android-demo-app
-cd android-demo-app/ImageSegmentation
-python deeplabv3.py
-```
-
-The Python script `deeplabv3.py` is used to generate the TorchScript-formatted models for mobile apps. For comparison, three versions of the model are generated: a full JIT version of the model, a Mobile Interpreter version of the model which is not optimized for mobile, and a Mobile Interpreter version of the model which is optimized for mobile, named as `deeplabv3_scripted_optimized.ptl`. The last one is what should be used in mobile apps, as its inference speed is over 60% faster than the non-optimized Mobile Interpreter model, which is about 6% faster than the non-optimized full JIT model.
 
 ### Use Android Studio
 
 Open the ImageSegmentation project using Android Studio. Note the app's `build.gradle` file has the following lines:
 
 ```
-implementation 'org.pytorch:pytorch_android_lite:1.10.0'
-implementation 'org.pytorch:pytorch_android_torchvision_lite:1.10.0'
+    def pytorch_version = "1.12.1" // Use the same version for both
+    implementation "org.pytorch:pytorch_android_lite:$pytorch_version"
+    implementation "org.pytorch:pytorch_android_torchvision_lite:$pytorch_version"
 ```
 
 and in the MainActivity.java, the code below is used to load the model:
 
 ```
-mModule = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "deeplabv3_scripted_optimized.ptl"));
+mModule1 = LiteModuleLoader.load(MainActivity.assetFilePath(getApplicationContext(), "segresnet.ptl"));
 ```
 
 ### Run the app
