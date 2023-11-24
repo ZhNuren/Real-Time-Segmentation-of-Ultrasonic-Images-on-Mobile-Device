@@ -52,7 +52,7 @@ To start learning:
 ## Test and Mobile Conversion
 
 `deep_learning/mobole.ipynb` and `deep_learning/test.ipynb` provide examples on how to test models and convert weights for mobile application. On the top of each notebook it is required to enter the name of run log which is located in `runs` folder after training is finished.
-Make sure you put generated .ptl file under `Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/mobile_app/serverapp/app/src/main/assets`.
+Make sure you put generated .ptl file under `Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/mobile_app/ImageSegmentation/app/src/main/assets`.
 
 
 ## Use Android Studio
