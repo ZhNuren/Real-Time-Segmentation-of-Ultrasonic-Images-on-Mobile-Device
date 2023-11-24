@@ -80,6 +80,7 @@ Make sure that the name of your .ptl file is similar with the name of the model 
 ### APK file
 Install 'aragorn server' and 'aragorn client' applications on corresponding devices explained above. Once installed, make sure both devices are under same network. Press 'start server' from server side and allow screen recording.
 Get IP address of the server device and paste it as follows and press connect:
+
 <img src="https://github.com/ZhNuren/Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/assets/43644508/6f6213bf-f6c2-47e8-af2d-4d631edca60b" width="300"/> <img src="https://github.com/ZhNuren/Real-Time-Segmentation-of-Ultrasonic-Images-on-Mobile-Device/assets/43644508/9479df66-8021-4c38-a39d-324b765371bd" width="300"/>
 
 Please note that we are using SegResNet model and 'desiredFrameRate' is set to 10 from server side as we are getting FPS around that number on client side.
