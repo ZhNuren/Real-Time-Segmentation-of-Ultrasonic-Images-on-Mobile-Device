@@ -78,7 +78,7 @@ Make sure that the name of your .ptl file is similar with the name of the model 
 
 ## Run the app
 ### APK file
-Download APK files from https://drive.google.com/drive/folders/1jClM-F2I6sUogWWJwIP8T89h1ThcM36y?usp=sharing. 
+Download APK files from `https://drive.google.com/drive/folders/1jClM-F2I6sUogWWJwIP8T89h1ThcM36y?usp=sharing`. 
 Install `aragorn server` and `aragorn client` applications on corresponding devices explained above. Once installed, make sure both devices are under same network. Press `start server` from server side and allow screen recording.
 Get IP address of the server device, click `Live` button and paste it as follows and press `Connect` button:
 
